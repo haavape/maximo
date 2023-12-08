@@ -1,0 +1,108 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "northeurope"
+        },
+        "networkSecurityGroupRules": {
+            "value": [
+                {
+                    "name": "SSH",
+                    "properties": {
+                        "priority": 300,
+                        "protocol": "TCP",
+                        "access": "Allow",
+                        "direction": "Inbound",
+                        "sourceAddressPrefix": "*",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "*",
+                        "destinationPortRange": "22"
+                    }
+                }
+            ]
+        },
+        "virtualMachineName": {
+            "value": "JumpBoxVM"
+        },
+        "osDiskType": {
+            "value": "Premium_LRS"
+        },
+        "virtualMachineSize": {
+            "value": "Standard_B2ms"
+        },
+        "controlMachineSize": {
+            "value": "Standard_D4as_v4"
+        },
+        "numControlReplicas": {
+            "value" : "3"
+        },
+        "workerMachineSize": {
+            "value": "Standard_D8as_v4"
+        },
+        "numWorkerReplicas": {
+            "value" : "3"
+        },
+        "adminUsername": {
+            "value": "azureuser"
+        },
+        "zone": {
+            "value": "1"
+        },
+        "vnetName": {
+            "value": "maximo-vnet"
+        },
+        "vnetAddressPrefix": {
+            "value": "10.30.0.0/16"
+        },
+        "subnetControlNodePrefix": {
+            "value": "10.30.0.0/24"
+        },
+        "subnetControlNodeName": {
+            "value": "control"
+        },
+        "subnetEndpointsPrefix": {
+            "value": "10.30.1.0/24"
+        },
+        "subnetEndpointsName": {
+            "value": "endpoints"
+        },
+        "subnetWorkerNodePrefix": {
+            "value": "10.30.2.0/23"
+        },
+        "subnetWorkerNodeName": {
+            "value": "workers"
+        },
+        "subnetBastionPrefix": {
+            "value": "10.30.4.0/27"
+        },
+        "subnetBastionName": {
+            "value": "AzureBastionSubnet"
+        },
+        "storageNamePrefix": {
+            "value": "maximofiles"
+        },
+        "bastionHostName": {
+            "value": "maximoBastionHost"
+        },
+        "openshiftVersion":{
+            "value": "4.12.30"
+        },
+        "azureFilesCSIVersion":{
+            "value": "v1.12.0"
+        },
+        "masChannel":{
+            "value": "8.7.x"
+        },
+        "nvidiaOperatorChannel" : {
+            "value": "v1.9.0"
+        },
+        "nvidiaOperatorCSV" : {
+            "value": "gpu-operator-certified.v1.9.1"
+        },
+        "branchName": {
+            "value": "main"
+        }
+
+    }
+}
