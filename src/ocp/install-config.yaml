@@ -8,11 +8,7 @@ controlPlane:
     azure:
       type: $controlMachineSize
       osDisk:
-        diskSizeGB: 512
-      zones: 
-      - "1"
-      - "2"
-      - "3"
+        diskSizeGB: 1024
   replicas: $numControlReplicas
 compute:
 - hyperthreading: Enabled
@@ -22,10 +18,6 @@ compute:
       type: $workerMachineSize
       osDisk:
         diskSizeGB: 512 
-      zones: 
-      - "1"
-      - "2"
-      - "3"
   replicas: $numWorkerReplicas
 metadata:
   name: $clusterName
