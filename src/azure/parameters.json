@@ -32,16 +32,16 @@
             "value": "Standard_B2ms"
         },
         "controlMachineSize": {
-            "value": "Standard_D4as_v4"
+            "value": "Standard_D16as_v5"
         },
         "numControlReplicas": {
-            "value" : "3"
+            "value" : "1"
         },
         "workerMachineSize": {
             "value": "Standard_D8as_v4"
         },
         "numWorkerReplicas": {
-            "value" : "3"
+            "value" : "0"
         },
         "adminUsername": {
             "value": "azureuser"
@@ -53,28 +53,28 @@
             "value": "maximo-vnet"
         },
         "vnetAddressPrefix": {
-            "value": "10.30.0.0/16"
+            "value": "10.40.0.0/16"
         },
         "subnetControlNodePrefix": {
-            "value": "10.30.0.0/24"
+            "value": "10.40.0.0/24"
         },
         "subnetControlNodeName": {
             "value": "control"
         },
         "subnetEndpointsPrefix": {
-            "value": "10.30.1.0/24"
+            "value": "10.40.1.0/24"
         },
         "subnetEndpointsName": {
             "value": "endpoints"
         },
         "subnetWorkerNodePrefix": {
-            "value": "10.30.2.0/23"
+            "value": "10.40.2.0/23"
         },
         "subnetWorkerNodeName": {
             "value": "workers"
         },
         "subnetBastionPrefix": {
-            "value": "10.30.4.0/27"
+            "value": "10.40.4.0/27"
         },
         "subnetBastionName": {
             "value": "AzureBastionSubnet"
@@ -101,7 +101,7 @@
             "value": "gpu-operator-certified.v1.9.1"
         },
         "branchName": {
-            "value": "main"
+            "value": "dev-sno"
         }
 
     }
