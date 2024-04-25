@@ -11,5 +11,26 @@ spec:
     accept: true
   settings:
     locale:
-      country: US
+      country: GB
+      language: en
+
+apiVersion: core.mas.ibm.com/v1
+kind: Suite
+metadata:
+  namespace: mas-preprod-core
+  name: preprod
+  labels:
+    mas.ibm.com/instanceId: preprod
+spec:
+  certManagerNamespace: cert-manager
+  certificateIssuer:
+    duration: 8760h
+    name: letsencrypt-prod-issuer
+    renewBefore: 2160h
+  domain: preprod.apps.preprod.mas.sundogbaelt.dk
+  license:
+    accept: true
+  settings:
+    locale:
+      country: GB
       language: en

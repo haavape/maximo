@@ -1,24 +1,64 @@
 apiVersion: config.mas.ibm.com/v1
 kind: SlsCfg
 metadata:
-  name: nonprod-sls-system
+  name: preprod-sls-system
   labels:
     app.kubernetes.io/instance: ibm-mas
     app.kubernetes.io/managed-by: olm
     app.kubernetes.io/name: ibm-mas
     mas.ibm.com/configScope: system
-    mas.ibm.com/instanceId: nonprod
-  namespace: mas-nonprod-core
+    mas.ibm.com/instanceId: preprod
+  namespace: mas-preprod-core
 spec:
   certificates:
-    - alias: server
+    - alias: ca
       crt: |
-        null
-    - alias: ibm
-      crt: |
-        null        
+        -----BEGIN CERTIFICATE-----
+        MIIDzDCCArSgAwIBAgIQEzQBUr4ULWnsWoOaSdu8cDANBgkqhkiG9w0BAQsFADB4
+        MQswCQYDVQQGEwJHQjEPMA0GA1UEBxMGTG9uZG9uMQ8wDQYDVQQJEwZMb25kb24x
+        LTArBgNVBAsTJElCTSBTdWl0ZSBMaWNlbnNlIFNlcnZpY2UgKEludGVybmFsKTEY
+        MBYGA1UEAxMPc2xzLnNscy5pYm0uY29tMB4XDTIzMTEzMDE0MjMwNVoXDTQzMTEy
+        NTE0MjMwNVowGjEYMBYGA1UEAxMPc2xzLmlibS1zbHMuc3ZjMIIBIjANBgkqhkiG
+        9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnGHV40pnLkG7+D6dCLCLmypAputOonusW8le
+        KxbLgrSZwwanGbLS2WzvmrbJh2ale2DT2dyJsbbilHbynw3isjAQ35yrehuL5Pmx
+        tveyXoUPvZgcMszU3vD1OsxL8fOJvDCPeOhYHadGdYBJ7JmsxNvw5s2ws54tKaqH
+        kksrYIx+UicXw9vtMYVEA2FUTmNytNGmYNWm0j6S0OSfrE5UeHTv66nrzZBLjo99
+        L/9vDnxFFdd8PzBd+pR9KqLLYHztLYKDl5CTm5f3GVJUIAnoocMPAtcPneRQ+fyL
+        C2slqo6AOxdp6wyyViF4C7pFo4HQEdERriN0YdTeOkWRMciJSQIDAQABo4GvMIGs
+        MBMGA1UdJQQMMAoGCCsGAQUFBwMBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAU
+        U14TsIgdur/nfYGA3iUHPnfL+iAwZgYDVR0RBF8wXYIPc2xzLmlibS1zbHMuc3Zj
+        gh1zbHMuaWJtLXNscy5zdmMuY2x1c3Rlci5sb2NhbIIrc2xzLmlibS1zbHMuYXBw
+        cy5wcmVwcm9kLm1hcy5zdW5kb2diYWVsdC5kazANBgkqhkiG9w0BAQsFAAOCAQEA
+        cpS+bmvtU80U+TdPcm/50YLtl7ErL+5uF9XmfiH5b8DjHCgcLurNTtlBNZ6wwbCb
+        i96nrXlJ/Ius2GAvE1AcQqJRpxxJKDutIQ8Di/wjAyt0+S2E//B0OcDJ0Swvixex
+        7G5ajadqNnW5iyKmjhHiq4P3AVhzFOF7dXqd+66i0ZcCqJ//F4/F6vFDVTBFBy6y
+        8CtBuHPJEGMAGPpfIzNqeyxuP9LYUcKbgnYQ0l4rrCELi5kkMbVF4Bz/vxcndm2P
+        aCKdc0xBWF2TCBZr4pz/GzLMZEi8BvEu8p/k9pNA3OWECFJE8TEBkr2Mnz150lxV
+        lNVpRYSHKKeFxd+00kNeQQ==
+        -----END CERTIFICATE-----     
   config:
     credentials:
-      secretName: nonprod-usersupplied-sls-creds-system
-    url: 'https://sls.ibm-sls.svc'
+      secretName: sls-registration-key
+    url: https://sls.ibm-sls.apps.preprod.mas.sundogbaelt.dk
   displayName: System SLS Configuration
+
+
+export branchName="main"
+
+oc delete secret nonprod-usersupplied-sls-creds-system -n mas-nonprod-core 2>/dev/null
+sleep 1
+oc create secret generic sls-registration-key --from-literal=registrationKey=$(oc get LicenseService sls -n ibm-sls --output json | jq -r .status.registrationKey) -n mas-preprod-core
+#oc exec -it sls-rlks-0 -n ibm-sls -- bash -c "echo | openssl s_client -servername sls.ibm-sls.svc -connect sls.ibm-sls.svc:443 -showcerts 2>/dev/null | sed -n -e '/BEGIN\ CERTIFICATE/,/END\ CERTIFICATE/ p'"
+
+oc port-forward service/sls 7000:443 -n ibm-sls &> /dev/null &
+PID=$!
+sleep 1
+rm -f outfile*
+openssl s_client -connect localhost:7000 -servername localhost -showcerts 2>/dev/null | sed --quiet '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | csplit --prefix=outfile - "/-----END CERTIFICATE-----/+1" "{*}" --elide-empty-files --quiet
+export slsCert1=$(cat outfile00)
+export slsCert2=$(cat outfile01)
+wget -nv https://raw.githubusercontent.com/Azure/maximo/$branchName/src/mas/slsCfg.yaml -O slsCfg.yaml
+envsubst < slsCfg.yaml > slsCfg-nonprod.yaml
+yq eval ".spec.certificates[0].crt = \"$slsCert1\"" -i slsCfg-nonprod.yaml
+yq eval ".spec.certificates[1].crt = \"$slsCert2\"" -i slsCfg-nonprod.yaml
+oc apply -f slsCfg-nonprod.yaml

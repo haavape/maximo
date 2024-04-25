@@ -1,28 +1,53 @@
 apiVersion: config.mas.ibm.com/v1
 kind: BasCfg
 metadata:
-  name: nonprod-bas-system
+  name: preprod-bas-system
   labels:
     app.kubernetes.io/instance: ibm-mas
     app.kubernetes.io/managed-by: olm
     app.kubernetes.io/name: ibm-mas
     mas.ibm.com/configScope: system
-    mas.ibm.com/instanceId: nonprod
-  namespace: mas-nonprod-core
+    mas.ibm.com/instanceId: preprod
+  namespace: mas-preprod-core
 spec:
   certificates:
     - alias: crt1
       crt: |
-        null
-    - alias: crt2
-      crt: |
-        null        
+        -----BEGIN CERTIFICATE-----
+        MIIC6jCCAlOgAwIBAgIIZ27L+1p5rpkwDQYJKoZIhvcNAQEFBQAwgZUxCzAJBgNV
+        BAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRIwEAYDVQQHEwlTdW5ueXZhbGUx
+        PDA6BgNVBAoUM0JhZCBTZXJ2ZXIgQ2VydGlmaWNhdGUgW2ludmFsaWQgc2VydmVy
+        IGNlcnRpZmljYXRlXTEfMB0GA1UEAxMWQmFkIFNlcnZlciBDZXJ0aWZpY2F0ZTAg
+        Fw0xMTAxMjYwNzA4MjNaGA8yMjg0MTExMTA3MDgyM1owLDEqMCgGA1UEAwwhKi5h
+        cHBzLnByZXByb2QubWFzLnN1bmRvZ2JhZWx0LmRrMIGfMA0GCSqGSIb3DQEBAQUA
+        A4GNADCBiQKBgQCwPd/uK/caQTLe8XQt7oI+gjJE37tnyhxv//I7lbGA7Jq0JKHW
+        ixBFNB890db0BAuEPGq8A+ndyXFvVM12jdzhzrcvIkuormNKzssApd+96onQVcEF
+        Jl0SCYjHHbfLl6+yUfLoHTMpttyPSTi4iIz/ZnzQDv6sbaR/k9R2fko1QwIDAQAB
+        o4GoMIGlMA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAKBggrBgEFBQcDATAMBgNV
+        HRMBAf8EAjAAMCwGA1UdEQQlMCOCISouYXBwcy5wcmVwcm9kLm1hcy5zdW5kb2di
+        YWVsdC5kazBCBgNVHR8EOzA5MDegNaAzhjFodHRwOi8vZ2F0ZXdheS56c2NhbGVy
+        Lm5ldC96c2NhbGVyLXpzY3JsLS00LTEuY3JsMA0GCSqGSIb3DQEBBQUAA4GBAJhR
+        3ASIFIhXbwCaFeMGe6ApwpEylayCGIesQX+696n14U2vf395p28mByndXAAOZwQZ
+        zBXG/FFnVr11DNJWZtTEzVILxL4uzoTi5wPSnzc2GqNDvPa+LjXupilcBnZyu2U2
+        BbBA22x0HKRsWHudYyOXtCaeSAsG4HRW2rOm3iV6
+        -----END CERTIFICATE-----    
   config:
     contact:
-      email: DBAUMGARTEN@microsoft.com
-      firstName: David
-      lastName: Baumgarten
+      email: mch@sbf.dk
+      firstName: Michael
+      lastName: Anders Christiansen
     credentials:
-      secretName: nonprod-usersupplied-bas-creds-system
-    url: 'https://bas-endpoint-ibm-bas.apps.$clusterName.$baseDomain'
-  displayName: 'https://bas-endpoint-ibm-bas.apps.$clusterName.$baseDomain'
+      secretName: uds-apikey
+    url: 'https://uds-endpoint-ibm-common-services.apps.preprod.mas.sundogbaelt.dk'
+  displayName: 'UDS Config'
+
+oc create secret generic uds-apikey --from-literal=api_key=$(oc get secret uds-api-key -n ibm-common-services --output="jsonpath={.data.apikey}" | base64 -d) -n mas-preprod-core
+export udsURL=uds-endpoint-ibm-common-services.apps.preprod.mas.sundogbaelt.dk
+openssl s_client -connect $udsURL:443 -servername $udsURL -showcerts 2>/dev/null | sed --quiet '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | csplit --prefix=outfile - "/-----END CERTIFICATE-----/+1" "{*}" --elide-empty-files --quiet
+export basCert1=$(cat outfile00)
+export basCert2=$(cat outfile01)
+wget -nv https://raw.githubusercontent.com/Azure/maximo/$branchName/src/mas/basCfg.yaml -O basCfg.yaml
+envsubst < basCfg.yaml > basCfg-nonprod.yaml
+yq eval ".spec.certificates[0].crt = \"$basCert1\"" -i basCfg-nonprod.yaml
+yq eval ".spec.certificates[1].crt = \"$basCert2\"" -i basCfg-nonprod.yaml
+oc apply -f basCfg-nonprod.yaml

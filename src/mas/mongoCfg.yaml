@@ -6,9 +6,9 @@ metadata:
     app.kubernetes.io/managed-by: olm
     app.kubernetes.io/name: ibm-mas
     mas.ibm.com/configScope: system
-    mas.ibm.com/instanceId: nonprod
-  name: nonprod-mongo-system
-  namespace: mas-nonprod-core
+    mas.ibm.com/instanceId: preprod
+  name: preprod-mongo-system
+  namespace: mas-preprod-core
 spec:
   certificates:
     - alias: server
@@ -21,12 +21,32 @@ spec:
     authMechanism: DEFAULT
     configDb: admin
     credentials:
-      secretName: nonprod-usersupplied-mongo-creds-system
+      secretName: preprod-usersupplied-mongo-creds-system
     hosts:
-      - host: mas-mongo-ce-0.mas-mongo-ce-svc.mongo.svc.cluster.local
+      - host: mas-mongo-ce-0.mas-mongo-ce-svc.mongoce.svc.cluster.local
         port: 27017
-      - host: mas-mongo-ce-1.mas-mongo-ce-svc.mongo.svc.cluster.local
+      - host: mas-mongo-ce-1.mas-mongo-ce-svc.mongoce.svc.cluster.local
         port: 27017
-      - host: mas-mongo-ce-2.mas-mongo-ce-svc.mongo.svc.cluster.local
+      - host: mas-mongo-ce-2.mas-mongo-ce-svc.mongoce.svc.cluster.local
         port: 27017
-  displayName: mas-mongo-ce-0.mas-mongo-ce-svc.mongo.svc.cluster.local
+  displayName: mas-mongo-ce-0.mas-mongo-ce-svc.mongoce.svc.cluster.local
+
+export branchName="main"
+
+oc delete secret preprod-usersupplied-mongo-creds-system -n mas-preprod-core 2>/dev/null
+sleep 1
+oc create secret generic mas-mongo-credentials --from-literal=username=admin --from-literal=password=$(oc extract secret/mas-mongo-ce-admin-password --to=- -n mongoce) -n mas-preprod-core
+oc port-forward service/mas-mongo-ce-svc 7000:27017 -n mongoce &> /dev/null &
+PID=$!
+sleep 1
+rm -f outfile*
+openssl s_client -connect localhost:7000 -servername localhost -showcerts 2>/dev/null | sed --quiet '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | csplit --prefix=outfile - "/-----END CERTIFICATE-----/+1" "{*}" --elide-empty-files --quiet
+export mongoCert1=$(cat outfile00)
+export mongoCert2=$(cat outfile01)
+#mongoCert1=$(openssl s_client -showcerts -servername localhost -connect localhost:7000 </dev/null 2>/dev/null | openssl x509 -outform PEM)
+kill $PID
+wget -nv https://raw.githubusercontent.com/Azure/maximo/$branchName/src/mas/mongoCfg.yaml -O mongoCfg.yaml
+envsubst < mongoCfg.yaml > mongoCfg-nonprod.yaml
+yq eval ".spec.certificates[0].crt = \"$mongoCert1\"" -i mongoCfg-nonprod.yaml
+yq eval ".spec.certificates[1].crt = \"$mongoCert2\"" -i mongoCfg-nonprod.yaml
+oc apply -f mongoCfg-nonprod.yaml
